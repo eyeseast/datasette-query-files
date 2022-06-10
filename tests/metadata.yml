@@ -1,0 +1,15 @@
+# standard metadata, for comparison
+
+databases:
+  legislators:
+    queries:
+      by_gender:
+        title: Legislators by gender
+        sql: |
+          select
+            bio_gender as gender,
+            count(*) as count
+          from
+            legislators
+          group by
+            bio_gender

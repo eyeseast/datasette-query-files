@@ -7,6 +7,16 @@ TESTS = pathlib.Path(__file__).parent
 DATABASE = TESTS / "legislators.db"
 QUERIES = TESTS / "queries"
 
+SQL_FILES = {
+    "presidents": QUERIES / "legislators" / "presidents.sql",
+    "women_senators": QUERIES / "legislators" / "women_senators.sql",
+}
+
+METADATA = {
+    "presidents": {"title": "All the presidents"},
+    "women_senators": {"title": "Women in the Senate"},
+}
+
 
 @pytest.fixture
 def ds():
@@ -26,7 +36,7 @@ async def test_plugin_is_installed():
 
 @pytest.mark.asyncio
 async def test_query_exists(ds):
-    presidents_query = QUERIES / "legislators" / "presidents.sql"
+    presidents_query = SQL_FILES["presidents"]
     assert presidents_query.exists()  # make sure it's not broken
 
     url = ds.urls.database("legislators", format="json")
@@ -44,3 +54,23 @@ async def test_query_results(ds):
     resp = await ds.client.get(url)
 
     assert resp.status_code == 200
+
+    data = resp.json()
+
+    # 45 presidents, counting Grover Cleveland once
+    assert len(data["rows"]) == 45
+
+
+@pytest.mark.asyncio
+async def test_query_metadata(ds):
+    url = ds.urls.database("legislators", format="json")
+
+    resp = await ds.client.get(url)
+    data = resp.json()
+    queries = {q["name"]: q for q in data["queries"]}
+
+    for name, path in SQL_FILES.items():
+        metadata = METADATA[name]
+        query = queries[name]
+
+        assert metadata["title"] == query["title"]

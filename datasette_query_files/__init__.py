@@ -1,4 +1,7 @@
+import json
+import yaml
 import aiofiles
+import aiofiles.os
 from pathlib import Path
 from datasette import hookimpl
 
@@ -13,7 +16,7 @@ def canned_queries(datasette, database):
 
     async def inner():
         queries = {}
-        if not db_dir.is_dir():
+        if not await aiofiles.os.path.isdir(db_dir):
             return queries
 
         for path in db_dir.iterdir():
@@ -30,5 +33,36 @@ async def get_canned_query(path, database):
         sql = await f.read()
 
     # todo look for metadata
+    metadata_paths = [
+        path.parent / (path.stem + ext) for ext in [".json", ".yml", ".yaml"]
+    ]
+    metadata = await get_metadata(*metadata_paths)
+    metadata["sql"] = sql
+    return metadata
 
-    return {"sql": sql}
+
+async def get_metadata(*paths):
+    metadata = {}
+    content = format = None
+
+    for path in paths:
+        if await aiofiles.os.path.isfile(path):
+            async with aiofiles.open(path) as f:
+                content = await f.read()
+                format = path.suffix
+                break
+
+    if content:
+        metadata = parse(content, format)
+
+    return metadata
+
+
+def parse(content, format):
+    if format == ".json":
+        return json.loads(content)
+
+    if format in {".yaml", ".yml"}:
+        return yaml.load(content, Loader=yaml.SafeLoader)
+
+    return {}
