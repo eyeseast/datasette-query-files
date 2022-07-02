@@ -10,3 +10,5 @@ venv
 .vscode
 dist
 build
+
+tests/writable.db

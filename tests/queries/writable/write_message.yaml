@@ -1,0 +1,4 @@
+write: true
+allow:
+  id: [root]
+on_success_message: "log message inserted"
